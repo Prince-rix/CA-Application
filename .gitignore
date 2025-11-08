@@ -1,0 +1,17 @@
+# Node API
+api/node_modules/
+api/logs/
+api/*.log
+api/.env
+api/dist/
+api/build/
+
+# React frontend (backoffice)
+backoffice/node_modules/
+backoffice/build/
+backoffice/.env
+backoffice/.cache
+
+# OS files
+.DS_Store
+Thumbs.db
