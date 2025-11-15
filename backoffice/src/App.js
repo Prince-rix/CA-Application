@@ -1,54 +1,67 @@
 import React, { useEffect, useRef } from "react";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+
 import RegistrationForm from "./components/RegistrationForm";
 import GallerySlider from "./components/GallerySlider";
+import PaymentOptions from "./components/PaymentOptions";
+import Success from "./components/Success";
+
 import "./App.css";
 
-function App() {
+function MainPage() {
   const galleryRef = useRef(null);
   const formRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const timer1 = setTimeout(() => {
-      galleryRef.current.scrollIntoView({ behavior: "smooth" });
-    }, 4000);
+    // Auto-scroll to gallery after 5s
+    setTimeout(() => {
+      if (galleryRef.current)
+        galleryRef.current.scrollIntoView({ behavior: "smooth" });
+    }, 5000);
 
-    const timer2 = setTimeout(() => {
-      formRef.current.scrollIntoView({ behavior: "smooth" });
+    // Auto-scroll to form after 9s
+    setTimeout(() => {
+      if (formRef.current)
+        formRef.current.scrollIntoView({ behavior: "smooth" });
     }, 9000);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
   }, []);
-
-  const scrollToGallery = () => {
-    galleryRef.current.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const scrollToForm = () => {
-    formRef.current.scrollIntoView({ behavior: "smooth" });
-  };
 
   return (
     <div className="app-container">
       <div className="hero-section">
         <h1>Greetings to All in the Name of the Lord Jesus Christ</h1>
-        <p>Raise and Shine! We are excited for our District Christ Ambassadors Program. Please register and pay the fees to participate.</p>
-        <div className="down-arrow" onClick={scrollToGallery}>&#x2193;</div>
+        <p>
+          Raise and Shine! We are excited for our District Christ Ambassadors
+          Program. Please register and pay the fees to participate.
+        </p>
       </div>
 
       <div className="gallery-section" ref={galleryRef}>
         <h2>Beautiful Jerusalem</h2>
         <GallerySlider />
-        <button className="scroll-btn" onClick={scrollToForm}>Please Register Now</button>
       </div>
 
       <div ref={formRef}>
-        <RegistrationForm />
+        {/* Pass onRegisterSuccess callback to RegistrationForm */}
+        <RegistrationForm
+          onRegisterSuccess={(userId) =>
+            navigate(`/payment-options/${userId}`)
+          }
+        />
       </div>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route path="/payment-options/:id" element={<PaymentOptions />} />
+        <Route path="/success" element={<Success />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}

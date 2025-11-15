@@ -2,43 +2,47 @@ const { sequelize } = require("../config/dbconnection");
 const db = require("../model");
 
 async function createUser(data, txnCtx) {
-
     const requiredFields = ['name', 'phone', 'age', 'church_name', 'section'];
 
     for (let field of requiredFields) {
-        if (!data[field] || data[field].toString().trim() == '') {
+        if (!data[field] || data[field].toString().trim() === '') {
             return { status: 'error', message: `Please enter your ${field.replace('_', ' ')}` };
         }
     }
+
     data.amount = 250;
-    let userDataRes = await db.Registration.create(data,{transaction:txnCtx});
-    if(!userDataRes){
-        return {status:'error',message:'user is not created!!'}
+
+    const userDataRes = await db.Registration.create(data, { transaction: txnCtx });
+
+    if (!userDataRes) {
+        return { status: 'error', message: 'User is not created!' };
     }
-    return {status:'success',message:'User is Created!!!',data:userDataRes.dataValues}
+
+    return { status: 'success', message: 'User is Created!', data: userDataRes.dataValues };
 }
 
-
 module.exports = {
-    async createUser(req,res){
+    async createUser(req, res) {
         const txnCtx = await sequelize.transaction();
         try {
-            let data = req.body;
-            if(!data){
-                return res.json({status:'error',message:'All Fields are Required!!!'})
+            const data = req.body;
+            if (!data) {
+                return res.json({ status: 'error', message: 'All fields are required!' });
             }
-            let userRes = await createUser(data,txnCtx);
-            if(userRes.status == 'error'){
-                await txnCtx.rollback()
-                return res.json(userRes)
+
+            const userRes = await createUser(data, txnCtx);
+
+            if (userRes.status === 'error') {
+                await txnCtx.rollback();
+                return res.json(userRes);
             }
+
             await txnCtx.commit();
-            return res.json(userRes)
+            return res.json(userRes);
         } catch (err) {
             await txnCtx.rollback();
-            console.log(err);
-            return res.json({status:'error',catchError:err})
-            
+            console.error(err);
+            return res.json({ status: 'error', catchError: err.message || err });
         }
     }
 }

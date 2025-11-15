@@ -1,8 +1,16 @@
 import axios from "axios";
 
-// Change port if your backend is different
-const API_URL = "http://localhost:3001/api";
+const API = axios.create({
+  baseURL: "http://localhost:3000/api",
+});
 
-export const createUser = async (data) => {
-  return axios.post(`${API_URL}/user`, data);
-};
+// CREATE USER
+export const createUser = (data) => API.post("/user", data);
+
+// CREATE ORDER
+export const createOrder = (data) => API.post("/create/order", data);
+
+// VERIFY PAYMENT
+export const verifyPayment = (data) => API.post("/payment/success", data);
+
+export default { createUser, createOrder, verifyPayment };

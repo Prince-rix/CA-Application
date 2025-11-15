@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { createUser } from "../api";
 import "./RegistrationForm.css";
 
-export default function RegistrationForm() {
+export default function RegistrationForm({ onRegisterSuccess }) {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -19,7 +19,12 @@ export default function RegistrationForm() {
     e.preventDefault();
     try {
       const res = await createUser(formData);
-      alert(`User Created! ID: ${res.data.data.id}`);
+      if (res.data.status === "success" && res.data.data?.id) {
+        // Call parent callback to navigate
+        onRegisterSuccess(res.data.data.id);
+      } else {
+        alert(res.data.message || "Error creating user");
+      }
     } catch (err) {
       console.error(err);
       alert("Error creating user");
