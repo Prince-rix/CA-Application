@@ -9,16 +9,19 @@ module.exports = {
         defaultValue: Sequelize.literal('uuid_generate_v4()'),
         primaryKey: true
       },
-      name: Sequelize.STRING,
-      phone: Sequelize.STRING,
-      church_name: Sequelize.STRING,
-      age: Sequelize.INTEGER,
-      section: Sequelize.STRING,
-      amount: Sequelize.INTEGER,
+      name: { type: Sequelize.STRING },
+      email_id: { type: Sequelize.STRING },            
+      phone: { type: Sequelize.STRING },
+      church_name: { type: Sequelize.STRING },
+      age: { type: Sequelize.INTEGER },
+      section: { type: Sequelize.STRING },
+      amount: { type: Sequelize.INTEGER },
       currency: { type: Sequelize.STRING, defaultValue: 'INR' },
-      status: { type: Sequelize.STRING, defaultValue: 'pending' },
-      payment_provider: Sequelize.STRING,
-      payment_id: Sequelize.STRING,
+      status: { type: Sequelize.STRING, defaultValue: 'pending' },  // pending, success, failed
+      payment_provider: { type: Sequelize.STRING },                 // razorpay
+      payment_id: { type: Sequelize.STRING },
+      razorpay_order_id: { type: Sequelize.STRING },
+      razorpay_signature: { type: Sequelize.STRING, allowNull: true },
       created_at: { type: Sequelize.DATE, defaultValue: Sequelize.fn('NOW') },
       updated_at: { type: Sequelize.DATE, defaultValue: Sequelize.fn('NOW') }
     });

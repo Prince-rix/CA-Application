@@ -10,6 +10,7 @@ async function createUser(data, txnCtx) {
             return { status: 'error', message: `Please enter your ${field.replace('_', ' ')}` };
         }
     }
+    data.amount = 250;
     let userDataRes = await db.Registration.create(data,{transaction:txnCtx});
     if(!userDataRes){
         return {status:'error',message:'user is not created!!'}
