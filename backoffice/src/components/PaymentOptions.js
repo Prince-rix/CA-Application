@@ -1,22 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { createOrder, verifyPayment } from "../api";
 import { useParams, useNavigate } from "react-router-dom";
 import "./PaymentOptions.css";
-import '@fortawesome/fontawesome-free/css/all.min.css'; // Font Awesome icons
+import '@fortawesome/fontawesome-free/css/all.min.css'; // Font Awesome
 
 export default function PaymentOptions() {
   const navigate = useNavigate();
   const { id: user_id } = useParams();
 
   const [loading, setLoading] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState(""); // user must select
+  const amount = 250; // registration fee
 
-  useEffect(() => {
-    // User must register first
-    if (!user_id) {
-      alert("Please register first before proceeding to payment.");
-      navigate("/");
-    }
-  }, [user_id, navigate]);
+  // Block rendering if no user_id
+  if (!user_id) {
+    navigate("/", { replace: true });
+    return null; // prevent rendering
+  }
 
   const loadRazorpaySdk = () =>
     new Promise((resolve) => {
@@ -28,7 +28,12 @@ export default function PaymentOptions() {
       document.body.appendChild(script);
     });
 
-  async function startPayment(chosenMethod) {
+  async function startPayment() {
+    if (!selectedMethod) {
+      alert("Please select a payment method before proceeding.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -50,7 +55,7 @@ export default function PaymentOptions() {
         amount: orderObj.amount,
         currency: orderObj.currency || "INR",
         name: "District Christ Ambassadors Program",
-        description: "Registration Fee - ₹250",
+        description: `Registration Fee - ₹${amount}`,
         order_id: orderObj.id,
         notes: { userId: user_id },
         handler: async (response) => {
@@ -90,33 +95,68 @@ export default function PaymentOptions() {
     }
   }
 
+  const getButtonClass = (method) => {
+    return `method-btn ${selectedMethod === method ? "selected" : ""}`;
+  };
+
   return (
     <div className="payment-options">
       <div className="payment-card">
         <h2>Choose Payment Method</h2>
+        <p style={{ fontSize: "18px", color: "#f7971e", marginBottom: "20px" }}>
+          Registration Fee: <strong>₹{amount}</strong>
+        </p>
 
         <div className="method-block">
           <h3>UPI</h3>
-          <button className="upi-btn" onClick={() => startPayment("upi")}>
-            <i className="fa-brands fa-google-pay fa-2x"></i> Pay via UPI
+          <button
+            className={getButtonClass("upi")}
+            onClick={() => setSelectedMethod("upi")}
+          >
+            <i className="fa-brands fa-google-pay fa-2x"></i>
+            <span>Pay via UPI</span>
           </button>
         </div>
 
         <div className="method-block">
           <h3>Credit / Debit Card</h3>
-          <button className="card-btn" onClick={() => startPayment("card")}>
-            <i className="fa-regular fa-credit-card fa-2x"></i> Pay by Card
+          <button
+            className={getButtonClass("card")}
+            onClick={() => setSelectedMethod("card")}
+          >
+            <i className="fa-regular fa-credit-card fa-2x"></i>
+            <span>Pay by Card</span>
           </button>
         </div>
 
         <div className="method-block">
           <h3>Wallets / Netbanking</h3>
-          <button className="wallet-btn" onClick={() => startPayment("wallet")}>
-            <i className="fa-brands fa-amazon-pay fa-2x"></i> Pay via Wallet
+          <button
+            className={getButtonClass("wallet")}
+            onClick={() => setSelectedMethod("wallet")}
+          >
+            <i className="fa-brands fa-amazon-pay fa-2x"></i>
+            <span>Pay via Wallet</span>
           </button>
         </div>
 
-        {loading && <p className="loading">Opening payment...</p>}
+        <button
+          style={{
+            marginTop: "20px",
+            padding: "12px 20px",
+            width: "100%",
+            background: "#f7971e",
+            color: "#fff",
+            fontWeight: 600,
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer"
+          }}
+          onClick={startPayment}
+          disabled={loading}
+        >
+          {loading ? "Processing Payment..." : `Pay ₹${amount}`}
+        </button>
       </div>
     </div>
   );
