@@ -16,5 +16,5 @@ backoffice/.cache
 .DS_Store
 Thumbs.db
 
-$env
+# env files
 .env
