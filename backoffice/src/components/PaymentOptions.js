@@ -17,22 +17,6 @@ export default function PaymentOptions() {
 
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // 👉 UPI App Deep Links
-  const upiApps = {
-    gpay: "upi://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
-    phonepe: "phonepe://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
-    paytm: "paytmmp://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
-    bhim: "upi://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
-  };
-
-  const openUPIApp = (app) => {
-    if (isMobile) {
-      window.location.href = upiApps[app]; // redirect to app
-    } else {
-      alert("You are on a laptop. Please enter your UPI ID manually.");
-    }
-  };
-
   const toggleUPI = () => {
     setSelectedMethod("upi");
     setShowUPI((prev) => !prev);
@@ -43,9 +27,7 @@ export default function PaymentOptions() {
     setShowUPI(false);
   };
 
-  // -------------------------------
-  // ⭐ NEW: Load Razorpay script
-  // -------------------------------
+  // Load Razorpay script
   const loadScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
@@ -56,11 +38,66 @@ export default function PaymentOptions() {
     });
   };
 
-  // -------------------------------
-  // ⭐ NEW: Laptop UPI flow
-  // -------------------------------
-  const initiateUPIPayment = async () => {
-    if (isMobile) return; // mobile handled using deep links
+  // Mobile UPI: system chooser
+  const initiateMobileUPI = async () => {
+    if (!isMobile) return;
+
+    setLoading(true);
+    const loaded = await loadScript();
+    if (!loaded) {
+      alert("Failed to load Razorpay");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const orderRes = await createOrder({ user_id });
+      if (!orderRes?.data?.id) {
+        alert("Order creation failed");
+        setLoading(false);
+        return;
+      }
+
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY,
+        amount: totalAmount * 100,
+        currency: "INR",
+        name: "District CA",
+        description: "Registration Payment",
+        order_id: orderRes.data.id,
+        method: {
+          upi: true,
+        },
+        prefill: {
+          email: "test@mail.com",
+          contact: "9999999999",
+        },
+        handler: async function (response) {
+          const verifyRes = await verifyPayment({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+
+          if (verifyRes?.status === "success") navigate("/success");
+          else navigate("/payment-failed");
+        },
+        theme: { color: "#0a66c2" },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+    } catch (err) {
+      console.log(err);
+      alert("Something went wrong!");
+    }
+
+    setLoading(false);
+  };
+
+  // Desktop UPI: manual UPI ID
+  const initiateDesktopUPI = async () => {
+    if (isMobile) return; // mobile handled separately
 
     if (!upiId) {
       alert("Please enter UPI ID");
@@ -78,7 +115,6 @@ export default function PaymentOptions() {
 
     try {
       const orderRes = await createOrder({ user_id });
-
       if (!orderRes?.data?.id) {
         alert("Order creation failed");
         setLoading(false);
@@ -92,16 +128,14 @@ export default function PaymentOptions() {
         name: "District CA",
         description: "Registration Payment",
         order_id: orderRes.data.id,
-
         method: {
           upi: true,
         },
-
         prefill: {
           email: "test@mail.com",
           contact: "9999999999",
+          vpa: upiId,
         },
-
         handler: async function (response) {
           const verifyRes = await verifyPayment({
             razorpay_payment_id: response.razorpay_payment_id,
@@ -109,10 +143,9 @@ export default function PaymentOptions() {
             razorpay_signature: response.razorpay_signature,
           });
 
-          if (verifyRes?.status === "success") navigate("/payment-success");
+          if (verifyRes?.status === "success") navigate("/success");
           else navigate("/payment-failed");
         },
-
         theme: { color: "#0a66c2" },
       };
 
@@ -126,15 +159,71 @@ export default function PaymentOptions() {
     setLoading(false);
   };
 
-  // -------------------------------
-  // ⭐ NEW: Decide button action
-  // -------------------------------
   const handleUPIPay = () => {
-    if (isMobile) {
-      alert("Select a UPI app icon below.");
-      return;
+    if (isMobile) initiateMobileUPI();
+    else initiateDesktopUPI();
+  };
+
+  // -------------------------------
+  // CARD PAY
+  // -------------------------------
+  const handleCardPay = async () => {
+    if (!isMobile) {
+      // Desktop / Laptop: open Razorpay card popup
+      setLoading(true);
+      const loaded = await loadScript();
+      if (!loaded) {
+        alert("Failed to load Razorpay");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const orderRes = await createOrder({ user_id });
+        if (!orderRes?.data?.id) {
+          alert("Order creation failed");
+          setLoading(false);
+          return;
+        }
+
+        const options = {
+          key: process.env.REACT_APP_RAZORPAY_KEY,
+          amount: totalAmount * 100,
+          currency: "INR",
+          name: "District CA",
+          description: "Registration Payment",
+          order_id: orderRes.data.id,
+          method: {
+            card: true,
+          },
+          prefill: {
+            email: "test@mail.com",
+            contact: "9999999999",
+          },
+          handler: async function (response) {
+            const verifyRes = await verifyPayment({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            if (verifyRes?.status === "success") navigate("/success");
+            else navigate("/payment-failed");
+          },
+          theme: { color: "#0a66c2" },
+        };
+
+        const paymentObject = new window.Razorpay(options);
+        paymentObject.open();
+      } catch (err) {
+        console.log(err);
+        alert("Something went wrong!");
+      }
+
+      setLoading(false);
+    } else {
+      alert("Card payments are supported on laptop/desktop only for now.");
     }
-    initiateUPIPayment();
   };
 
   return (
@@ -152,38 +241,17 @@ export default function PaymentOptions() {
 
       {showUPI && (
         <div className="upi-section">
-          <label>Enter UPI ID</label>
-          <input
-            type="text"
-            placeholder="example@upi"
-            value={upiId}
-            onChange={(e) => setUpiId(e.target.value)}
-          />
-
-          <div className="upi-icons">
-            <img
-              src="/icons/google-icon-logo-svgrepo-com.svg"
-              alt="Google Pay"
-              onClick={() => openUPIApp("gpay")}
-            />
-            <img
-              src="/icons/phonepe-icon.svg"
-              alt="PhonePe"
-              onClick={() => openUPIApp("phonepe")}
-            />
-            <img
-              src="/icons/paytm-icon.svg"
-              alt="Paytm"
-              onClick={() => openUPIApp("paytm")}
-            />
-            <img
-              src="/icons/bhim-upi-icon.svg"
-              alt="BHIM"
-              onClick={() => openUPIApp("bhim")}
-            />
-          </div>
-
-          {/* ⭐ UPDATED BUTTON */}
+          {!isMobile && (
+            <>
+              <label>Enter UPI ID</label>
+              <input
+                type="text"
+                placeholder="example@upi"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+              />
+            </>
+          )}
           <button className="pay-btn" onClick={handleUPIPay}>
             {loading ? "Processing..." : `Pay ₹${totalAmount}`}
           </button>
@@ -199,11 +267,12 @@ export default function PaymentOptions() {
         <div className="method-sub">Enter card details securely</div>
       </div>
 
-      {selectedMethod === "card" && !showUPI && (
+      {selectedMethod === "card" && (
         <div className="card-section">
           <p>You will enter card details in Razorpay popup.</p>
-
-          <button className="pay-btn">Pay ₹{totalAmount}</button>
+          <button className="pay-btn" onClick={handleCardPay}>
+            {loading ? "Processing..." : `Pay ₹${totalAmount}`}
+          </button>
         </div>
       )}
 
