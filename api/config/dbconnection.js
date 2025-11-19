@@ -9,6 +9,12 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     dialect: "postgres",
     logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,           // for AWS RDS
+        rejectUnauthorized: false
+      }
+    }
   }
 );
 
@@ -17,7 +23,7 @@ async function connectionDb() {
     await sequelize.authenticate();
     console.log("Database connected successfully.");
   } catch (err) {
-    console.error(" Database connection failed:", err);
+    console.error("Database connection failed:", err);
   }
 }
 
