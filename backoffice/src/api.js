@@ -13,4 +13,11 @@ export const createOrder = (data) => API.post("/create/order", data);
 // VERIFY PAYMENT
 export const verifyPayment = (data) => API.post("/payment/success", data);
 
-export default { createUser, createOrder, verifyPayment };
+// export default { createUser, createOrder, verifyPayment };
+const apiService = {
+  createUser,
+  createOrder,
+  verifyPayment
+};
+
+export default apiService;

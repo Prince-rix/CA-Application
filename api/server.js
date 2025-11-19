@@ -4,8 +4,8 @@ require("dotenv").config();
 
 
 const Port = process.env.PORT 
-const { connectionDb } = require("./api/config/dbconnection");
-const router = require("./api/routes/router");
+const { connectionDb } = require("./config/dbconnection");
+const router = require("./routes/router");
 const cors = require("cors");
 
 
