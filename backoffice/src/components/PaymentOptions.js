@@ -43,6 +43,100 @@ export default function PaymentOptions() {
     setShowUPI(false);
   };
 
+  // -------------------------------
+  // ⭐ NEW: Load Razorpay script
+  // -------------------------------
+  const loadScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // -------------------------------
+  // ⭐ NEW: Laptop UPI flow
+  // -------------------------------
+  const initiateUPIPayment = async () => {
+    if (isMobile) return; // mobile handled using deep links
+
+    if (!upiId) {
+      alert("Please enter UPI ID");
+      return;
+    }
+
+    setLoading(true);
+
+    const loaded = await loadScript();
+    if (!loaded) {
+      alert("Failed to load Razorpay");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const orderRes = await createOrder({ user_id });
+
+      if (!orderRes?.data?.id) {
+        alert("Order creation failed");
+        setLoading(false);
+        return;
+      }
+
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY,
+        amount: totalAmount * 100,
+        currency: "INR",
+        name: "District CA",
+        description: "Registration Payment",
+        order_id: orderRes.data.id,
+
+        method: {
+          upi: true,
+        },
+
+        prefill: {
+          email: "test@mail.com",
+          contact: "9999999999",
+        },
+
+        handler: async function (response) {
+          const verifyRes = await verifyPayment({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+
+          if (verifyRes?.status === "success") navigate("/payment-success");
+          else navigate("/payment-failed");
+        },
+
+        theme: { color: "#0a66c2" },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+    } catch (err) {
+      console.log(err);
+      alert("Something went wrong!");
+    }
+
+    setLoading(false);
+  };
+
+  // -------------------------------
+  // ⭐ NEW: Decide button action
+  // -------------------------------
+  const handleUPIPay = () => {
+    if (isMobile) {
+      alert("Select a UPI app icon below.");
+      return;
+    }
+    initiateUPIPayment();
+  };
+
   return (
     <div className="payment-wrapper">
       <h2>Complete Payment</h2>
@@ -67,22 +161,31 @@ export default function PaymentOptions() {
           />
 
           <div className="upi-icons">
-            <img src="/icons/google-icon-logo-svgrepo-com.svg"
-                 alt="Google Pay"
-                 onClick={() => openUPIApp("gpay")} />
-            <img src="/icons/phonepe-icon.svg"
-                 alt="PhonePe"
-                 onClick={() => openUPIApp("phonepe")} />
-            <img src="/icons/paytm-icon.svg"
-                 alt="Paytm"
-                 onClick={() => openUPIApp("paytm")} />
-            <img src="/icons/bhim-upi-icon.svg"
-                 alt="BHIM"
-                 onClick={() => openUPIApp("bhim")} />
+            <img
+              src="/icons/google-icon-logo-svgrepo-com.svg"
+              alt="Google Pay"
+              onClick={() => openUPIApp("gpay")}
+            />
+            <img
+              src="/icons/phonepe-icon.svg"
+              alt="PhonePe"
+              onClick={() => openUPIApp("phonepe")}
+            />
+            <img
+              src="/icons/paytm-icon.svg"
+              alt="Paytm"
+              onClick={() => openUPIApp("paytm")}
+            />
+            <img
+              src="/icons/bhim-upi-icon.svg"
+              alt="BHIM"
+              onClick={() => openUPIApp("bhim")}
+            />
           </div>
 
-          <button className="pay-btn">
-            Pay ₹{totalAmount}
+          {/* ⭐ UPDATED BUTTON */}
+          <button className="pay-btn" onClick={handleUPIPay}>
+            {loading ? "Processing..." : `Pay ₹${totalAmount}`}
           </button>
         </div>
       )}
@@ -100,9 +203,7 @@ export default function PaymentOptions() {
         <div className="card-section">
           <p>You will enter card details in Razorpay popup.</p>
 
-          <button className="pay-btn">
-            Pay ₹{totalAmount}
-          </button>
+          <button className="pay-btn">Pay ₹{totalAmount}</button>
         </div>
       )}
 
