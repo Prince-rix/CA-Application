@@ -1,20 +1,28 @@
+# ========================
 # Node API
-api/node_modules/
-api/logs/
-api/*.log
-api/.env
-api/dist/
-api/build/
+# ========================
+api/node_modules/        # dependencies
+api/logs/                # log files
+api/*.log                # any log file
+api/.env                 # sensitive environment variables
+api/dist/                # built files
+api/build/               # optional build folder
 
-# React frontend (backoffice)
-backoffice/node_modules/
-backoffice/build/
-backoffice/.env
-backoffice/.cache
+# ========================
+# React Frontend (backoffice)
+# ========================
+backoffice/node_modules/ # dependencies
+backoffice/build/        # production build
+backoffice/.env          # frontend env variables
+backoffice/.cache/       # React cache
 
+# ========================
 # OS files
+# ========================
 .DS_Store
 Thumbs.db
 
-# env files
-.env
+# ========================
+# Global env files
+# ========================
+.env                     # root env (if any)
