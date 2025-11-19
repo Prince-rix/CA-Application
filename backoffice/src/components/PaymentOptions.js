@@ -2,161 +2,121 @@ import React, { useState } from "react";
 import { createOrder, verifyPayment } from "../api";
 import { useParams, useNavigate } from "react-router-dom";
 import "./PaymentOptions.css";
-import '@fortawesome/fontawesome-free/css/all.min.css'; // Font Awesome
 
 export default function PaymentOptions() {
   const navigate = useNavigate();
   const { id: user_id } = useParams();
 
+  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [showUPI, setShowUPI] = useState(false);
+  const [upiId, setUpiId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState(""); // user must select
-  const amount = 250; // registration fee
 
-  // Block rendering if no user_id
-  if (!user_id) {
-    navigate("/", { replace: true });
-    return null; // prevent rendering
-  }
+  const amount = 250;
+  const totalAmount = amount;
 
-  const loadRazorpaySdk = () =>
-    new Promise((resolve) => {
-      if (window.Razorpay) return resolve(true);
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  async function startPayment() {
-    if (!selectedMethod) {
-      alert("Please select a payment method before proceeding.");
-      return;
+  // 👉 UPI App Deep Links
+  const upiApps = {
+    gpay: "upi://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
+    phonepe: "phonepe://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
+    paytm: "paytmmp://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
+    bhim: "upi://pay?pa=yourupi@upi&pn=DistrictCA&am=250",
+  };
+
+  const openUPIApp = (app) => {
+    if (isMobile) {
+      window.location.href = upiApps[app]; // redirect to app
+    } else {
+      alert("You are on a laptop. Please enter your UPI ID manually.");
     }
+  };
 
-    try {
-      setLoading(true);
+  const toggleUPI = () => {
+    setSelectedMethod("upi");
+    setShowUPI((prev) => !prev);
+  };
 
-      const resp = await createOrder({ user_id });
-      if (!resp || !resp.data || resp.data.status !== "success") {
-        throw new Error("Order creation failed");
-      }
-
-      const orderObj = resp.data.data;
-      const sdkLoaded = await loadRazorpaySdk();
-      if (!sdkLoaded) {
-        alert("Razorpay SDK failed to load.");
-        setLoading(false);
-        return;
-      }
-
-      const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_123456789",
-        amount: orderObj.amount,
-        currency: orderObj.currency || "INR",
-        name: "District Christ Ambassadors Program",
-        description: `Registration Fee - ₹${amount}`,
-        order_id: orderObj.id,
-        notes: { userId: user_id },
-        handler: async (response) => {
-          try {
-            const verifyResp = await verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
-            if (verifyResp.data.status === "success") {
-              navigate("/success");
-            } else {
-              alert("Payment verification failed.");
-            }
-          } catch (err) {
-            console.error(err);
-            alert("Payment verification failed.");
-          } finally {
-            setLoading(false);
-          }
-        },
-        theme: { color: "#f7971e" },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", () => {
-        alert("Payment failed or cancelled.");
-        setLoading(false);
-      });
-
-      rzp.open();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Payment failed. Please try again.");
-      setLoading(false);
-    }
-  }
-
-  const getButtonClass = (method) => {
-    return `method-btn ${selectedMethod === method ? "selected" : ""}`;
+  const toggleCard = () => {
+    setSelectedMethod("card");
+    setShowUPI(false);
   };
 
   return (
-    <div className="payment-options">
-      <div className="payment-card">
-        <h2>Choose Payment Method</h2>
-        <p style={{ fontSize: "18px", color: "#f7971e", marginBottom: "20px" }}>
-          Registration Fee: <strong>₹{amount}</strong>
-        </p>
+    <div className="payment-wrapper">
+      <h2>Complete Payment</h2>
 
-        <div className="method-block">
-          <h3>UPI</h3>
-          <button
-            className={getButtonClass("upi")}
-            onClick={() => setSelectedMethod("upi")}
-          >
-            <i className="fa-brands fa-google-pay fa-2x"></i>
-            <span>Pay via UPI</span>
+      {/* UPI OPTION */}
+      <div
+        className={`method-box ${selectedMethod === "upi" ? "active" : ""}`}
+        onClick={toggleUPI}
+      >
+        <div className="method-title">UPI</div>
+        <div className="method-sub">Pay using any UPI app</div>
+      </div>
+
+      {showUPI && (
+        <div className="upi-section">
+          <label>Enter UPI ID</label>
+          <input
+            type="text"
+            placeholder="example@upi"
+            value={upiId}
+            onChange={(e) => setUpiId(e.target.value)}
+          />
+
+          <div className="upi-icons">
+            <img src="/icons/google-icon-logo-svgrepo-com.svg"
+                 alt="Google Pay"
+                 onClick={() => openUPIApp("gpay")} />
+            <img src="/icons/phonepe-icon.svg"
+                 alt="PhonePe"
+                 onClick={() => openUPIApp("phonepe")} />
+            <img src="/icons/paytm-icon.svg"
+                 alt="Paytm"
+                 onClick={() => openUPIApp("paytm")} />
+            <img src="/icons/bhim-upi-icon.svg"
+                 alt="BHIM"
+                 onClick={() => openUPIApp("bhim")} />
+          </div>
+
+          <button className="pay-btn">
+            Pay ₹{totalAmount}
           </button>
         </div>
+      )}
 
-        <div className="method-block">
-          <h3>Credit / Debit Card</h3>
-          <button
-            className={getButtonClass("card")}
-            onClick={() => setSelectedMethod("card")}
-          >
-            <i className="fa-regular fa-credit-card fa-2x"></i>
-            <span>Pay by Card</span>
+      {/* CARD OPTION */}
+      <div
+        className={`method-box ${selectedMethod === "card" ? "active" : ""}`}
+        onClick={toggleCard}
+      >
+        <div className="method-title">Card (Debit/Credit)</div>
+        <div className="method-sub">Enter card details securely</div>
+      </div>
+
+      {selectedMethod === "card" && !showUPI && (
+        <div className="card-section">
+          <p>You will enter card details in Razorpay popup.</p>
+
+          <button className="pay-btn">
+            Pay ₹{totalAmount}
           </button>
         </div>
+      )}
 
-        <div className="method-block">
-          <h3>Wallets / Netbanking</h3>
-          <button
-            className={getButtonClass("wallet")}
-            onClick={() => setSelectedMethod("wallet")}
-          >
-            <i className="fa-brands fa-amazon-pay fa-2x"></i>
-            <span>Pay via Wallet</span>
-          </button>
+      {/* SUMMARY */}
+      <div className="summary-box">
+        <div className="summary-row">
+          <span>Registration Fee</span>
+          <span>₹{amount}</span>
         </div>
 
-        <button
-          style={{
-            marginTop: "20px",
-            padding: "12px 20px",
-            width: "100%",
-            background: "#f7971e",
-            color: "#fff",
-            fontWeight: 600,
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer"
-          }}
-          onClick={startPayment}
-          disabled={loading}
-        >
-          {loading ? "Processing Payment..." : `Pay ₹${amount}`}
-        </button>
+        <div className="summary-total">
+          <span>Total</span>
+          <span>₹{totalAmount}</span>
+        </div>
       </div>
     </div>
   );
